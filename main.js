@@ -1,4 +1,3 @@
-// Register Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
@@ -6,21 +5,19 @@ if ('serviceWorker' in navigator) {
         console.log(' Service Worker registered:', registration.scope);
       })
       .catch((error) => {
-        console.error('❌Service Worker registration failed:', error);
+        console.error('Service Worker registration failed:', error);
       });
   });
 }
 
-// Install PWA prompt
 let deferredPrompt;
 
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
-  console.log('💡 PWA install prompt available');
+  console.log('PWA install prompt available');
 });
 
-// Show install notification
 window.addEventListener('load', () => {
   if (deferredPrompt) {
     setTimeout(() => {
@@ -38,11 +35,10 @@ window.addEventListener('load', () => {
   }
 });
 
-// Online/Offline status
 window.addEventListener('online', () => {
-  console.log('🟢 Back online');
+  console.log(' Back online');
 });
 
 window.addEventListener('offline', () => {
-  console.log('🔴 You are offline');
+  console.log('You are offline');
 });

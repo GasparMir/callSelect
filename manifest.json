@@ -2,7 +2,7 @@
   "name": "PWA Application",
   "short_name": "PWA App",
   "description": "Progressive Web App with Calendar and Form",
-  "start_url": "./",
+  "start_url": "./callSelect",
   "scope": "./",
   "display": "standalone",
   "background_color": "#ffffff",

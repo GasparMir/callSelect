@@ -24,6 +24,9 @@ self.addEventListener('install', (event) => {
       .then(() => self.skipWaiting())
   );
 });
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.register("/callSelect/service-worker.js");
+}
 
 // Activate Event - Clean old caches
 self.addEventListener('activate', (event) => {

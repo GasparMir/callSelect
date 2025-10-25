@@ -1,15 +1,22 @@
-const CACHE_NAME = 'pwa-app-v1';
-const CACHE_DYNAMIC = 'pwa-dynamic-v1';
+// Nombre de cachés
+const CACHE_NAME = 'callselect-app-v1';
+const CACHE_DYNAMIC = 'callselect-dynamic-v1';
 
-// AppShell - Cache Only Strategy
+// AppShell - Cache Only
 const APP_SHELL = [
-  '/',
-  '/index.html',
-  '/calendar.html',
-  '/form.html',
-  '/main.js',
-  '/styles.css',
-  '/manifest.json'
+  '/callSelect/',
+  '/callSelect/index.html',
+  '/callSelect/calendar.html',
+  '/callSelect/form.html',
+  '/callSelect/main.js',
+  '/callSelect/styles.css',
+  '/callSelect/manifest.json'
+];
+
+// Archivos dinámicos
+const DYNAMIC_FILES = [
+  '/callSelect/calendar.js',
+  '/callSelect/form.js'
 ];
 
 // Install Event - Pre-cache AppShell
@@ -24,11 +31,8 @@ self.addEventListener('install', (event) => {
       .then(() => self.skipWaiting())
   );
 });
-if ("serviceWorker" in navigator) {
-  navigator.serviceWorker.register("/callSelect/service-worker.js");
-}
 
-// Activate Event - Clean old caches
+// Activate Event - Limpiar cachés viejos
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker...');
   event.waitUntil(
@@ -45,103 +49,60 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch Event - Caching Strategies
+// Fetch Event
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip chrome-extension and non-http(s) requests
-  if (!request.url.startsWith('http')) {
-    return;
-  }
+  if (!request.url.startsWith('http')) return;
 
-  // AppShell Resources - Cache Only
+  // AppShell - Cache Only
   if (isAppShell(url.pathname)) {
     event.respondWith(cacheOnly(request));
     return;
   }
 
-  // Dynamic Resources (CDN) - Cache First, Network Fallback
-  if (isDynamicResource(url.href)) {
+  // Archivos dinámicos - Cache First, Network Fallback
+  if (isDynamicFile(url.pathname)) {
     event.respondWith(cacheFirstNetworkFallback(request));
     return;
   }
 
-  // Default - Network First
+  // Resto - Network First
   event.respondWith(fetch(request));
 });
 
-// Check if resource is part of AppShell
+// Helpers
 function isAppShell(pathname) {
-  return APP_SHELL.some(path => {
-    if (path === '/') return pathname === '/' || pathname === '/index.html';
-    return pathname.endsWith(path);
-  });
+  return APP_SHELL.includes(pathname);
 }
 
-// Check if resource is dynamic (CDN resources)
-function isDynamicResource(href) {
-  return (
-    href.includes('cdnjs.cloudflare.com') ||
-    href.includes('cdn.jsdelivr.net') ||
-    href.includes('unpkg.com')
-  );
+function isDynamicFile(pathname) {
+  return DYNAMIC_FILES.includes(pathname);
 }
 
-// Cache Only Strategy
+// Estrategias de caché
 async function cacheOnly(request) {
-  try {
-    const cache = await caches.open(CACHE_NAME);
-    const cached = await cache.match(request);
-    
-    if (cached) {
-      console.log('[SW] Cache Only - Serving:', request.url);
-      return cached;
-    }
-    
-    return new Response('Not found in cache', { status: 404 });
-  } catch (error) {
-    console.error('[SW] Cache Only error:', error);
-    return new Response('Cache error', { status: 500 });
-  }
+  const cache = await caches.open(CACHE_NAME);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+  return fetch(request);
 }
 
-// Cache First, Network Fallback Strategy
 async function cacheFirstNetworkFallback(request) {
+  const cache = await caches.open(CACHE_DYNAMIC);
+  const cached = await cache.match(request);
+  if (cached) return cached;
+
   try {
-    const cache = await caches.open(CACHE_DYNAMIC);
-    const cached = await cache.match(request);
-
-    if (cached) {
-      console.log('[SW] Cache First - Serving from cache:', request.url);
-      return cached;
-    }
-
-    // Not in cache, fetch from network
-    console.log('[SW] Cache First - Fetching from network:', request.url);
     const response = await fetch(request);
-    
-    // Only cache successful responses
-    if (response && response.status === 200 && response.type !== 'error') {
-      const responseToCache = response.clone();
-      cache.put(request, responseToCache);
-      console.log('[SW] Cached new resource:', request.url);
+    if (response && response.status === 200) {
+      cache.put(request, response.clone());
     }
-    
     return response;
   } catch (error) {
     console.error('[SW] Network Fallback failed for:', request.url, error);
-    
-    // Try one more time from cache in case of race condition
-    const cache = await caches.open(CACHE_DYNAMIC);
-    const cached = await cache.match(request);
-    if (cached) {
-      return cached;
-    }
-    
-    return new Response('Network error and not in cache', { 
-      status: 503,
-      statusText: 'Service Unavailable'
-    });
+    const fallback = await cache.match(request);
+    return fallback || new Response('Offline', { status: 503 });
   }
 }

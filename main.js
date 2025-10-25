@@ -1,13 +1,7 @@
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js')
-      .then((registration) => {
-        console.log(' Service Worker registered:', registration.scope);
-      })
-      .catch((error) => {
-        console.error('Service Worker registration failed:', error);
-      });
-  });
+  navigator.serviceWorker.register('/callSelect/sw.js')
+    .then(() => console.log('[SW] Registered successfully'))
+    .catch(err => console.error('[SW] Registration failed:', err));
 }
 
 let deferredPrompt;
